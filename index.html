@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ficha de Reconhecimento Docente — GSP</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  :root{--dark:#1A2E2B;--teal:#2A9D8F;--teal2:#1A7A6E;--green:#8DC63F;--amber:#B07D12;--verde:#3A7D44;--gray:#444;--lgray:#F5F5F5;--mint:#D4EEEB;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:#e8e8e8;min-height:100vh;padding:28px 16px;display:flex;flex-direction:column;align-items:center;gap:20px;}
+  .tabs{display:flex;gap:2px;width:100%;max-width:700px;}
+  .tab{padding:8px 20px;font-size:12px;font-weight:600;color:#888;background:white;border-radius:3px 3px 0 0;cursor:pointer;border:none;font-family:'Inter',sans-serif;transition:all .15s;}
+  .tab.ativo{background:var(--dark);color:white;}
+  .tab-count{background:var(--teal);color:white;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:6px;}
+  .ficha{width:100%;max-width:700px;background:white;border-radius:0 4px 4px 4px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12);}
+  .topo{background:var(--dark);padding:22px 28px 18px;position:relative;overflow:hidden;}
+  .topo::before{content:'';position:absolute;top:0;left:0;width:5px;height:100%;background:var(--green);}
+  .topo-label{font-size:10px;font-weight:500;letter-spacing:.12em;color:var(--mint);text-transform:uppercase;margin-bottom:5px;}
+  .topo-titulo{font-size:19px;font-weight:700;color:white;}
+  .topo-titulo span{color:var(--green);}
+  .topo-sub{font-size:11.5px;color:rgba(255,255,255,.5);margin-top:5px;}
+  .pergunta{background:var(--teal);padding:12px 28px;}
+  .pergunta-texto{font-size:12.5px;font-weight:600;color:white;line-height:1.4;}
+  .pergunta-texto em{font-style:normal;color:var(--mint);}
+  .campos-nome{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:#e0e0e0;border-bottom:1px solid #e0e0e0;}
+  .campo-nome{background:white;padding:10px 16px;}
+  .campo-nome label{font-size:9px;font-weight:600;letter-spacing:.08em;color:var(--teal2);text-transform:uppercase;display:block;margin-bottom:4px;}
+  .campo-nome input{border:none;border-bottom:1.5px solid #ddd;outline:none;font-family:'Inter',sans-serif;font-size:12px;color:var(--gray);width:100%;padding:2px 0;background:transparent;}
+  .campo-nome input:focus{border-bottom-color:var(--teal);}
+  .corpo{padding:0 20px 20px;}
+  .orientacao{font-size:11px;color:#777;padding:12px 0 10px;line-height:1.6;border-bottom:1px solid #eee;}
+  .orientacao strong{color:var(--teal2);}
+  .escala-header{display:flex;justify-content:flex-end;padding:10px 0 4px;}
+  .escala-label{width:100px;display:flex;justify-content:space-between;padding:0 4px;}
+  .escala-label span{font-size:9px;font-weight:600;color:#bbb;text-align:center;width:28px;}
+  .escala-peso-label{width:48px;font-size:9px;font-weight:600;color:#bbb;text-align:center;}
+  .grupo-label{font-size:9.5px;font-weight:600;letter-spacing:.08em;color:#bbb;text-transform:uppercase;margin:14px 0 6px;display:flex;align-items:center;gap:8px;}
+  .grupo-label::after{content:'';flex:1;height:1px;background:#eee;}
+  .criterio-row{display:flex;align-items:center;margin-bottom:5px;border-radius:3px;overflow:hidden;}
+  .criterio-barra{width:4px;align-self:stretch;flex-shrink:0;}
+  .criterio-info{flex:1;padding:7px 10px;background:var(--lgray);}
+  .criterio-nome{font-size:12px;font-weight:600;color:var(--dark);margin-bottom:2px;}
+  .criterio-desc{font-size:10.5px;color:#777;line-height:1.4;}
+  .criterio-pontos{display:flex;gap:4px;padding:0 6px;background:var(--lgray);align-items:center;}
+  .ponto-btn{width:28px;height:28px;border-radius:50%;border:1.5px solid #ddd;background:white;font-size:11px;font-weight:600;color:#aaa;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .ponto-btn:hover{border-color:var(--teal);color:var(--teal);}
+  .ponto-btn.ativo{color:white;border-color:transparent;}
+  .criterio-peso{width:48px;text-align:center;background:var(--lgray);padding:0 4px;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;}
+  .peso-label{font-size:8px;color:#bbb;font-weight:500;}
+  .peso-valor{font-size:12px;font-weight:700;color:#ccc;}
+  .peso-valor.ativo{color:var(--teal2);}
+  .c-teal .criterio-barra{background:var(--teal);}
+  .c-teal2 .criterio-barra{background:var(--teal2);}
+  .c-verde .criterio-barra{background:var(--verde);}
+  .c-amber .criterio-barra{background:var(--amber);}
+  .ponto-btn.ativo.c-teal{background:var(--teal);}
+  .ponto-btn.ativo.c-teal2{background:var(--teal2);}
+  .ponto-btn.ativo.c-verde{background:var(--verde);}
+  .ponto-btn.ativo.c-amber{background:var(--amber);}
+  .resultado-area{margin-top:18px;padding-top:16px;border-top:1px solid #eee;display:flex;align-items:stretch;gap:12px;}
+  .resultado-placar{background:var(--dark);border-radius:4px;padding:14px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:110px;gap:2px;}
+  .placar-label{font-size:9px;font-weight:600;letter-spacing:.08em;color:rgba(255,255,255,.45);text-transform:uppercase;}
+  .placar-numero{font-size:36px;font-weight:700;color:white;line-height:1;}
+  .placar-maximo{font-size:11px;color:rgba(255,255,255,.35);margin-top:2px;}
+  .placar-numero.verde{color:var(--green);}
+  .placar-numero.amber{color:#F4B942;}
+  .resultado-info{flex:1;display:flex;flex-direction:column;gap:8px;justify-content:center;}
+  .resultado-barra-bg{height:8px;background:#eee;border-radius:4px;overflow:hidden;}
+  .resultado-barra-fill{height:100%;border-radius:4px;transition:width .3s ease;width:0%;}
+  .resultado-texto{font-size:13px;font-weight:600;color:var(--dark);}
+  .resultado-sub{font-size:11px;color:#888;line-height:1.5;}
+  .corte-linha{display:flex;align-items:center;gap:6px;font-size:10.5px;color:#aaa;}
+  .corte-linha::before{content:'';width:10px;height:1.5px;background:#aaa;display:block;}
+  .corte-linha strong{color:var(--gray);}
+  .campo-frase{margin-top:14px;}
+  .campo-frase label{font-size:9px;font-weight:600;letter-spacing:.08em;color:var(--teal2);text-transform:uppercase;display:block;margin-bottom:5px;}
+  .campo-frase textarea{width:100%;border:1.5px solid #e0e0e0;border-radius:3px;padding:8px 10px;font-family:'Inter',sans-serif;font-size:12px;color:var(--gray);resize:none;outline:none;line-height:1.5;background:var(--lgray);transition:border-color .15s;}
+  .campo-frase textarea:focus{border-color:var(--teal);background:white;}
+  .campo-frase .hint{font-size:10px;color:#bbb;margin-top:3px;}
+  .acoes{display:flex;justify-content:space-between;align-items:center;margin-top:16px;}
+  .btn-limpar{background:none;border:1.5px solid #ddd;border-radius:3px;padding:8px 16px;font-family:'Inter',sans-serif;font-size:11px;color:#aaa;cursor:pointer;transition:all .15s;}
+  .btn-limpar:hover{border-color:var(--teal2);color:var(--teal2);}
+  .btn-salvar{background:var(--teal2);border:none;border-radius:3px;padding:9px 22px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:white;cursor:pointer;transition:all .15s;}
+  .btn-salvar:hover{background:var(--teal);}
+  .btn-salvar:disabled{background:#ccc;cursor:not-allowed;}
+  .salvo-msg{font-size:11px;color:var(--verde);font-weight:600;display:none;}
+  .erro-msg{font-size:11px;color:#e74c3c;font-weight:600;display:none;}
+  .rodape{background:var(--dark);padding:10px 28px;display:flex;justify-content:space-between;align-items:center;}
+  .rodape-txt{font-size:10px;color:rgba(255,255,255,.35);}
+  .rodape-tag{font-size:10px;font-weight:600;color:var(--green);letter-spacing:.06em;}
+  /* PAINEL */
+  .painel{width:100%;max-width:700px;display:none;}
+  .painel.visivel{display:block;}
+  .painel-header{background:var(--dark);padding:16px 24px;border-radius:4px 4px 0 0;}
+  .painel-titulo{font-size:14px;font-weight:700;color:white;}
+  .painel-sub{font-size:10px;color:rgba(255,255,255,.45);margin-top:2px;}
+  .painel-body{background:white;border-radius:0 0 4px 4px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12);}
+  .painel-vazio{padding:40px;text-align:center;color:#bbb;font-size:13px;}
+  .ficha-salva{border-bottom:1px solid #f0f0f0;padding:14px 20px;}
+  .ficha-salva:last-child{border-bottom:none;}
+  .fs-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+  .fs-prof{font-size:13px;font-weight:700;color:var(--dark);}
+  .fs-meta{font-size:10px;color:#aaa;margin-top:2px;}
+  .fs-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+  .fs-tag{font-size:9.5px;padding:2px 8px;border-radius:10px;font-weight:600;}
+  .fs-tag.verde{background:#EAF4EB;color:var(--verde);}
+  .fs-tag.amber{background:#FDF6E3;color:var(--amber);}
+  .fs-tag.strong{background:#E8F7F5;color:var(--teal2);}
+  .fs-placar{text-align:right;flex-shrink:0;}
+  .fs-pts{font-size:22px;font-weight:700;}
+  .fs-pts.verde{color:var(--verde);}
+  .fs-pts.amber{color:var(--amber);}
+  .fs-pts-label{font-size:9px;color:#aaa;}
+  .fs-barra{height:4px;background:#eee;border-radius:2px;margin-top:10px;overflow:hidden;}
+  .fs-barra-fill{height:100%;border-radius:2px;}
+  .fs-frase{font-size:11px;color:#777;font-style:italic;margin-top:8px;padding-top:8px;border-top:1px solid #f5f5f5;line-height:1.5;}
+  .btn-del{background:none;border:none;font-size:14px;color:#ddd;cursor:pointer;padding:2px 6px;margin-left:8px;transition:color .15s;}
+  .btn-del:hover{color:#e74c3c;}
+  .loading{padding:40px;text-align:center;color:#bbb;font-size:12px;}
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab ativo" onclick="verAba('form')">📋 Nova Ficha</button>
+  <button class="tab" onclick="verAba('painel')" id="tab-painel">📊 Fichas Salvas <span class="tab-count" id="count">—</span></button>
+</div>
+
+<!-- FORMULÁRIO -->
+<div class="ficha" id="aba-form">
+  <div class="topo">
+    <div class="topo-label">Reconhecimento Formal Bimestral · GSP 2027</div>
+    <div class="topo-titulo">Ficha de <span>Avaliação</span> — Uso Interno</div>
+    <div class="topo-sub">Apenas o Diretor ou Coordenador preenche. O professor não vê esta ficha.</div>
+  </div>
+  <div class="pergunta">
+    <div class="pergunta-texto">🔍 &nbsp;Quem, neste bimestre, <em>causou impacto</em> — grande ou pequeno? &nbsp;·&nbsp; Pontue e compare professores.</div>
+  </div>
+  <div class="campos-nome">
+    <div class="campo-nome"><label>Professor avaliado</label><input id="f-prof" type="text" placeholder="Nome completo"></div>
+    <div class="campo-nome"><label>Bimestre / Data</label><input id="f-bim" type="text" placeholder="ex: 2º bimestre / Jun 2027"></div>
+    <div class="campo-nome"><label>Unidade · Segmento</label><input id="f-unid" type="text" placeholder="ex: CJA · Fund. II"></div>
+  </div>
+  <div class="corpo">
+    <div class="orientacao">Pontue cada critério de <strong>0 a 2</strong>: 0 = não observado &nbsp;·&nbsp; 1 = sim, com evidência parcial &nbsp;·&nbsp; 2 = sim, com evidência clara. A pontuação <strong>orienta — não substitui o julgamento</strong>.</div>
+    <div class="escala-header">
+      <div class="escala-label"><span>0</span><span>1</span><span>2</span></div>
+      <div class="escala-peso-label">Pontos</div>
+    </div>
+
+    <div class="grupo-label">Impacto no aluno</div>
+    <div class="criterio-row c-teal" data-peso="3" data-idx="0"><div class="criterio-barra"></div><div class="criterio-info"><div class="criterio-nome">Citado positivamente no NPS</div><div class="criterio-desc">Família mencionou o professor pelo nome ou descreveu experiência positiva nas pesquisas de satisfação.</div></div><div class="criterio-pontos"><button class="ponto-btn c-teal" data-val="0">0</button><button class="ponto-btn c-teal" data-val="1">1</button><button class="ponto-btn c-teal" data-val="2">2</button></div><div class="criterio-peso"><div class="peso-label">Pontos</div><div class="peso-valor" id="pw0">×3</div></div></div>
+    <div class="criterio-row c-teal" data-peso="3" data-idx="1"><div class="criterio-barra"></div><div class="criterio-info"><div class="criterio-nome">Trouxe o aluno de volta</div><div class="criterio-desc">Criou vínculo, percebeu o momento do aluno e fez diferença no engajamento ou na permanência.</div></div><div class="criterio-pontos"><button class="ponto-btn c-teal" data-val="0">0</button><button class="ponto-btn c-teal" data-val="1">1</button><button class="ponto-btn c-teal" data-val="2">2</button></div><div class="criterio-peso"><div class="peso-label">Pontos</div><div class="peso-valor" id="pw1">×3</div></div></div>
+    <div class="criterio-row c-teal" data-peso="2" data-idx="2"><div class="criterio-barra"></div><div class="criterio-info"><div class="criterio-nome">Elevou o resultado da turma</div><div class="criterio-desc">Dedicação que se refletiu no desempenho, evolução ou clima de aprendizagem.</div></div><div class="criterio-pontos"><button class="ponto-btn c-teal" data-val="0">0</button><button class="ponto-btn c-teal" data-val="1">1</button><button class="ponto-btn c-teal" data-val="2">2</button></div><div class="criterio-peso"><div class="peso-label">Pontos</div><div class="peso-valor" id="pw2">×2</div></div></div>
+
+    <div class="grupo-label">Prática e inovação</div>
+    <div class="criterio-row c-teal2" data-peso="2" data-idx="3"><div class="criterio-barra"></div><div class="criterio-info"><div class="criterio-nome">Inovou na prática</div><div class="criterio-desc">Experimentou algo diferente em sala — tecnologia, dinâmica, abordagem nova — e funcionou.</div></div><div class="criterio-pontos"><button class="ponto-btn c-teal2" data-val="0">0</button><button class="ponto-btn c-teal2" data-val="1">1</button><button class="ponto-btn c-teal2" data-val="2">2</button></div><div class="criterio-peso"><div class="peso-label">Pontos</div><div class="peso-valor" id="pw3">×2</div></div></div>
+
+    <div class="grupo-label">Presença e equipe</div>
+    <div class="criterio-row c-verde" data-peso="2" data-idx="4"><div class="criterio-barra"></div><div class="criterio-info"><div class="criterio-nome">Presença e assiduidade</div><div class="criterio-desc">Raramente falta, é pontual e demonstra comprometimento consistente com a escola e os alunos.</div></div><div class="criterio-pontos"><button class="ponto-btn c-verde" data-val="0">0</button><button class="ponto-btn c-verde" data-val="1">1</button><button class="ponto-btn c-verde" data-val="2">2</button></div><div class="criterio-peso"><div class="peso-label">Pontos</div><div class="peso-valor" id="pw4">×2</div></div></div>
+    <div class="criterio-row c-verde" data-peso="1" data-idx="5"><div class="criterio-barra"></div><div class="criterio-info"><div class="criterio-nome">Inspirou os colegas</div><div class="criterio-desc">Compartilhou, apoiou, colaborou — e fez o time crescer junto.</div></div><div class="criterio-pontos"><button class="ponto-btn c-verde" data-val="0">0</button><button class="ponto-btn c-verde" data-val="1">1</button><button class="ponto-btn c-verde" data-val="2">2</button></div><div class="criterio-peso"><div class="peso-label">Pontos</div><div class="peso-valor" id="pw5">×1</div></div></div>
+    <div class="criterio-row c-verde" data-peso="1" data-idx="6"><div class="criterio-barra"></div><div class="criterio-info"><div class="criterio-nome">Fortaleceu a comunidade</div><div class="criterio-desc">Aproximou família, envolveu alunos além do conteúdo ou abriu a escola para a comunidade.</div></div><div class="criterio-pontos"><button class="ponto-btn c-verde" data-val="0">0</button><button class="ponto-btn c-verde" data-val="1">1</button><button class="ponto-btn c-verde" data-val="2">2</button></div><div class="criterio-peso"><div class="peso-label">Pontos</div><div class="peso-valor" id="pw6">×1</div></div></div>
+
+    <div class="grupo-label">Superação</div>
+    <div class="criterio-row c-amber" data-peso="2" data-idx="7"><div class="criterio-barra"></div><div class="criterio-info"><div class="criterio-nome">Superou algo difícil</div><div class="criterio-desc">Enfrentou um desafio real no bimestre e seguiu em frente com qualidade e presença.</div></div><div class="criterio-pontos"><button class="ponto-btn c-amber" data-val="0">0</button><button class="ponto-btn c-amber" data-val="1">1</button><button class="ponto-btn c-amber" data-val="2">2</button></div><div class="criterio-peso"><div class="peso-label">Pontos</div><div class="peso-valor" id="pw7">×2</div></div></div>
+
+    <div class="resultado-area">
+      <div class="resultado-placar">
+        <div class="placar-label">Pontuação</div>
+        <div class="placar-numero" id="placar">0</div>
+        <div class="placar-maximo">de 32 pontos</div>
+      </div>
+      <div class="resultado-info">
+        <div class="resultado-barra-bg"><div class="resultado-barra-fill" id="barra-fill"></div></div>
+        <div class="resultado-texto" id="resultado-texto">Preencha os critérios acima</div>
+        <div class="resultado-sub" id="resultado-sub">Nota de corte sugerida: 14 pontos (44%).</div>
+        <div class="corte-linha">Nota de corte sugerida: <strong>&nbsp;14 pontos</strong></div>
+      </div>
+    </div>
+
+    <div class="campo-frase" style="margin-top:16px;">
+      <label>O que este professor fez — em uma frase específica</label>
+      <textarea id="f-frase" rows="2" placeholder="Ex: Percebeu que o João estava se afastando e criou um momento individual que fez o aluno voltar a participar das aulas."></textarea>
+      <div class="hint">Esta é a frase que o Diretor vai dizer no momento do reconhecimento. Quanto mais específica, mais impacto tem.</div>
+    </div>
+
+    <div class="acoes">
+      <button class="btn-limpar" onclick="limpar()">↺ &nbsp;Limpar ficha</button>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="salvo-msg" id="salvo-msg">✓ Ficha salva com sucesso!</span>
+        <span class="erro-msg" id="erro-msg">✕ Erro ao salvar. Tente novamente.</span>
+        <button class="btn-salvar" id="btn-salvar" onclick="salvar()">💾 &nbsp;Salvar ficha</button>
+      </div>
+    </div>
+  </div>
+  <div class="rodape">
+    <div class="rodape-txt">Uso interno — o professor não vê esta avaliação</div>
+    <div class="rodape-tag">Programa de Valorização Docente · GSP</div>
+  </div>
+</div>
+
+<!-- PAINEL -->
+<div class="painel" id="aba-painel">
+  <div class="painel-header">
+    <div class="painel-titulo">📊 Fichas Salvas</div>
+    <div class="painel-sub">Todas as avaliações registradas pelos Diretores e Coordenadores</div>
+  </div>
+  <div class="painel-body" id="painel-body">
+    <div class="loading">Carregando fichas...</div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://mobsmlmpnkztoxmuoajv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_EpFQwzi7qPQbaOGnHBgujw_tw2oSnwV';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const MAX = 32;
+const PESOS = [3,3,2,2,2,1,1,2];
+const NOMES = ['Citado no NPS','Trouxe o aluno de volta','Elevou o resultado','Inovou na prática','Presença e assiduidade','Inspirou colegas','Fortaleceu comunidade','Superou algo difícil'];
+let notas = [0,0,0,0,0,0,0,0];
+
+// Init botões
+document.querySelectorAll('.criterio-row').forEach((row) => {
+  const idx  = parseInt(row.dataset.idx);
+  const peso = parseInt(row.dataset.peso);
+  const btns = row.querySelectorAll('.ponto-btn');
+  btns[0].classList.add('ativo');
+  btns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const val = parseInt(btn.dataset.val);
+      notas[idx] = val;
+      btns.forEach(b => b.classList.remove('ativo'));
+      btn.classList.add('ativo');
+      const pw = document.getElementById('pw' + idx);
+      const pts = val * peso;
+      pw.textContent = pts > 0 ? '= ' + pts : '×' + peso;
+      pw.className   = 'peso-valor' + (pts > 0 ? ' ativo' : '');
+      calcular();
+    });
+  });
+});
+
+function calcular() {
+  let total = 0;
+  notas.forEach((n, i) => total += n * PESOS[i]);
+  const pct  = Math.round((total / MAX) * 100);
+  const pl   = document.getElementById('placar');
+  const fill = document.getElementById('barra-fill');
+  const txt  = document.getElementById('resultado-texto');
+  const sub  = document.getElementById('resultado-sub');
+  pl.textContent = total;
+  fill.style.width = pct + '%';
+  pl.className = 'placar-numero';
+  if (total === 0) {
+    fill.style.background = '#ccc';
+    txt.textContent = 'Preencha os critérios acima';
+    sub.textContent = 'Nota de corte sugerida: 14 pontos (44%).';
+  } else if (total < 14) {
+    pl.classList.add('amber'); fill.style.background = '#B07D12';
+    txt.textContent = 'Abaixo da nota de corte (' + pct + '%)';
+    sub.textContent = 'Reflita: há impacto observado que os critérios não capturam? A ficha orienta, não decide.';
+  } else if (total < 22) {
+    pl.classList.add('verde'); fill.style.background = '#3A7D44';
+    txt.textContent = 'Elegível para reconhecimento (' + pct + '%)';
+    sub.textContent = 'Bom perfil. Prepare uma fala específica — o detalhe faz o reconhecimento genuíno.';
+  } else {
+    pl.classList.add('verde'); fill.style.background = '#8DC63F';
+    txt.textContent = '✦ Perfil forte — reconhecimento recomendado (' + pct + '%)';
+    sub.textContent = 'Evidências sólidas em múltiplos critérios. Considere para indicação ao grande prêmio da Unidade.';
+  }
+  return total;
+}
+
+function limpar() {
+  notas = [0,0,0,0,0,0,0,0];
+  document.querySelectorAll('.criterio-row').forEach((row) => {
+    const idx  = parseInt(row.dataset.idx);
+    const peso = parseInt(row.dataset.peso);
+    const btns = row.querySelectorAll('.ponto-btn');
+    btns.forEach(b => b.classList.remove('ativo'));
+    btns[0].classList.add('ativo');
+    const pw = document.getElementById('pw' + idx);
+    pw.textContent = '×' + peso;
+    pw.className = 'peso-valor';
+  });
+  ['f-prof','f-bim','f-unid','f-frase'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('salvo-msg').style.display = 'none';
+  document.getElementById('erro-msg').style.display = 'none';
+  calcular();
+}
+
+async function salvar() {
+  const professor = document.getElementById('f-prof').value.trim();
+  if (!professor) { alert('Informe o nome do professor antes de salvar.'); return; }
+  const total = calcular();
+  const nivel = total < 14 ? 'amber' : total < 22 ? 'verde' : 'strong';
+  const payload = {
+    professor,
+    bimestre: document.getElementById('f-bim').value.trim(),
+    unidade:  document.getElementById('f-unid').value.trim(),
+    frase:    document.getElementById('f-frase').value.trim(),
+    total,
+    notas: JSON.stringify(notas),
+    nivel
+  };
+  const btn = document.getElementById('btn-salvar');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  document.getElementById('salvo-msg').style.display = 'none';
+  document.getElementById('erro-msg').style.display = 'none';
+  const { error } = await db.from('fichas').insert(payload);
+  if (error) {
+    console.error(error);
+    document.getElementById('erro-msg').style.display = 'inline';
+  } else {
+    document.getElementById('salvo-msg').style.display = 'inline';
+    setTimeout(() => document.getElementById('salvo-msg').style.display = 'none', 4000);
+    limpar();
+    atualizarCount();
+  }
+  btn.disabled = false; btn.textContent = '💾  Salvar ficha';
+}
+
+async function atualizarCount() {
+  const { count } = await db.from('fichas').select('*', { count: 'exact', head: true });
+  document.getElementById('count').textContent = count || 0;
+}
+
+function verAba(aba) {
+  document.getElementById('aba-form').style.display   = aba === 'form'   ? 'block' : 'none';
+  document.getElementById('aba-painel').style.display = aba === 'painel' ? 'block' : 'none';
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('ativo', (i===0&&aba==='form')||(i===1&&aba==='painel')));
+  if (aba === 'painel') carregarPainel();
+}
+
+function corLabel(nivel) {
+  if (nivel === 'strong') return ['strong', '✦ Perfil forte'];
+  if (nivel === 'verde')  return ['verde',  'Elegível'];
+  return ['amber', 'Abaixo do corte'];
+}
+
+async function carregarPainel() {
+  const body = document.getElementById('painel-body');
+  body.innerHTML = '<div class="loading">Carregando fichas...</div>';
+  const { data, error } = await db.from('fichas').select('*').order('criado_em', { ascending: false }).limit(100);
+  if (error || !data) {
+    body.innerHTML = '<div class="painel-vazio">Erro ao carregar. Verifique a conexão.</div>';
+    return;
+  }
+  document.getElementById('count').textContent = data.length;
+  if (data.length === 0) {
+    body.innerHTML = '<div class="painel-vazio">Nenhuma ficha salva ainda.<br>Preencha e salve a primeira ficha na aba "Nova Ficha".</div>';
+    return;
+  }
+  body.innerHTML = data.map(d => {
+    const pct = Math.round((d.total / MAX) * 100);
+    const [cls, lbl] = corLabel(d.nivel);
+    const dataBR = d.criado_em ? new Date(d.criado_em).toLocaleDateString('pt-BR') : '';
+    const barColor = d.nivel==='strong'?'#8DC63F':d.nivel==='verde'?'#3A7D44':'#B07D12';
+    const fraseHtml = d.frase ? `<div class="fs-frase">${d.frase}</div>` : '';
+    const meta = [d.unidade, d.bimestre, dataBR].filter(Boolean).join(' · ');
+    return `<div class="ficha-salva">
+      <div class="fs-header">
+        <div>
+          <div class="fs-prof">${d.professor || '—'}</div>
+          <div class="fs-meta">${meta}</div>
+          <div class="fs-tags"><span class="fs-tag ${cls}">${lbl} · ${d.total}/32 pts</span></div>
+        </div>
+        <div style="display:flex;align-items:center;">
+          <div class="fs-placar">
+            <div class="fs-pts ${d.nivel}">${d.total}</div>
+            <div class="fs-pts-label">de 32 pts</div>
+          </div>
+          <button class="btn-del" onclick="deletar('${d.id}')" title="Excluir ficha">✕</button>
+        </div>
+      </div>
+      <div class="fs-barra"><div class="fs-barra-fill" style="width:${pct}%;background:${barColor};"></div></div>
+      ${fraseHtml}
+    </div>`;
+  }).join('');
+}
+
+async function deletar(id) {
+  if (!confirm('Excluir esta ficha permanentemente?')) return;
+  const { error } = await db.from('fichas').delete().eq('id', id);
+  if (!error) carregarPainel();
+  else alert('Erro ao excluir. Tente novamente.');
+}
+
+// Init
+calcular();
+atualizarCount();
+</script>
+</body>
+</html>
